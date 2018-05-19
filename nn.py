@@ -2,7 +2,6 @@ import os
 import numpy as np
 
 from functions import xentropy
-from layers import LogitLayer, SigmoidLayer
 
 
 class Network:
@@ -36,7 +35,7 @@ class Network:
             caches.append(cache)
         return a, caches
 
-    def back_prop(self, pred, labels, caches):
+    def backprop(self, pred, labels, caches):
         gradients = []
 
         # it's actually dz
@@ -60,45 +59,38 @@ class Network:
         correct = np.sum(pred == labels)
         return correct / m
 
-    def train(self, data, labels, num_iter, learning_rate, batch_size=100):
-        m = data.shape[1]
+    def train(self, examples, labels, test_examples, test_labels, num_iter, learning_rate, batch_size=100):
+        m = examples.shape[1]
+        num_labels = labels.shape[0]
 
         batch_num = m // batch_size
         if batch_num * batch_size != m:
             batch_num += 1
 
+        data = np.vstack((labels, examples)).T
+
         for i in range(num_iter):
+            np.random.shuffle(data)
+
             for j in range(batch_num):
                 beg, end = j * batch_size, min((j + 1) * batch_size, m)
-                batch = data[:, beg:end]
-                batch_labels = labels[:, beg:end]
+                batch_examples = data[beg:end, num_labels:].T
+                batch_labels = data[beg:end, :num_labels].T
 
-                pred, caches = self.forward_prop(batch)
+                pred, caches = self.forward_prop(batch_examples)
 
-                gradients = self.back_prop(pred, batch_labels, caches)
+                gradients = self.backprop(pred, batch_labels, caches)
 
                 self.update_weights(gradients, learning_rate)
 
-            pred = self.forward_prop(data)[0]
+            pred = self.forward_prop(examples)[0]
             cost = xentropy(pred, labels)
 
-            acc = self.accuracy(test_images, test_labels)
+            acc = self.accuracy(test_examples, test_labels)
             print("Cost after {}. iteration = {}, accuracy = {}".format(i, cost, acc))
 
             if self.load_path:
                 self.save()
 
-
-train_images = np.load('train_images.npy')
-train_labels = np.load('train_labels.npy')
-test_images = np.load('test_images.npy')
-test_labels = np.load('test_labels.npy')
-
-net = Network([
-    SigmoidLayer(28 * 28, 200),
-    LogitLayer(200, 10)
-], 'w1')
-
-net.train(train_images, train_labels, 1000, 0.1, 100)
 
 

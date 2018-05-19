@@ -26,15 +26,21 @@ class Layer:
 
 
 class ReluLayer(Layer):
+    def __init__(self, n_in, n_out):
+        self.W = np.random.randn(n_out, n_in) * 0.001
+        self.b = np.random.randn(n_out, 1) * 0.001
+
     def forward(self, data):
-        cache = data
-        return relu(self.W.dot(data) + self.b), cache
+        res = relu(self.W.dot(data) + self.b)
+        cache = data, res
+        return res, cache
 
     def backward(self, da, cache):
-        a_prev = cache
-        dz = relu_derivative(da)
-        dW = dz.dot(a_prev.T)
-        db = dz.sum(axis=1, keepdims=True)
+        m = da.shape[1]
+        a_prev, a = cache
+        dz = relu_derivative(a)
+        dW = dz.dot(a_prev.T) / m
+        db = dz.sum(axis=1, keepdims=True) / m
         da_prev = self.W.T.dot(dz)
         return da_prev, dW, db
 
